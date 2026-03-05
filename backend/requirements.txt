@@ -1,0 +1,13 @@
+Django>=5.0
+djangorestframework
+psycopg2-binary
+python-dotenv
+django-cors-headers
+djangorestframework-simplejwt
+celery
+redis
+openai
+google-generativeai
+pgvector
+pypdf
+django-filter==25.2

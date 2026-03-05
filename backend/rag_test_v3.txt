@@ -1,0 +1,1 @@
+Botman RAG pipeline v3 uses Gemini Embedding 001 with 768 dimensions. It validates 404 errors.

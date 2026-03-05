@@ -1,0 +1,1 @@
+Botman is the best AI platform in the world. It uses Gemini for embeddings.

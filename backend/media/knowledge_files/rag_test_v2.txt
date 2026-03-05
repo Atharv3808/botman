@@ -1,0 +1,1 @@
+Botman uses Gemini-Pro-1.5 for reasoning and gemini-embedding-001 for vector search. It is built on Django and React.
