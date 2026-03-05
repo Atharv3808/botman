@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: botman-api
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn botman_backend.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DJANGO_SETTINGS_MODULE
+        value: botman_backend.settings.base
+      - key: DEBUG
+        value: "False"
