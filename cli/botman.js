@@ -100,15 +100,21 @@ program
 
     // Step 4: Deploy to Vercel
     const vercelSpinner = ora('Deploying frontend to Vercel...').start();
+    let frontendUrl = 'https://botman.vercel.app'; // Default fallback
     try {
       // Use --yes to skip confirmation in CI/CLI environments
-      // We skip actual deployment execution for safety, but log it
-      console.log(chalk.gray('  - Running: vercel --prod --yes'));
-      // await run('vercel', ['--prod', '--yes'], { cwd: frontendDir });
+      console.log(chalk.gray('  - Running: vercel --prod --yes --scope atharvshinde3808-gmailcoms-projects'));
+      const { stdout } = await run('vercel', ['--prod', '--yes', '--scope', 'atharvshinde3808-gmailcoms-projects'], { cwd: frontendDir });
+      
+      // Attempt to extract the URL from the Vercel output
+      const urlMatch = stdout.match(/https?:\/\/[a-zA-Z0-9.-]+\.vercel\.app/);
+      if (urlMatch) {
+        frontendUrl = urlMatch[0];
+      }
       vercelSpinner.succeed(chalk.green('✓ Frontend deployed to Vercel.'));
     } catch (error) {
-      vercelSpinner.fail(chalk.red('✗ Vercel deployment failed.'));
-      console.error(error.message);
+      vercelSpinner.fail(chalk.red('✗ Vercel deployment failed. (Are you logged in with `vercel login`?)'));
+      console.error(chalk.gray(error.message));
       process.exit(1);
     }
 
@@ -129,13 +135,13 @@ program
         }
         
         console.log(chalk.gray('  - Pushing to origin main...'));
-        // In a real CLI, we might check if origin exists
-        // await run('git', ['push', 'origin', 'main'], { cwd: rootDir });
+        // In a real CLI, we check if origin exists and push
+        await run('git', ['push', 'origin', 'main'], { cwd: rootDir });
         gitSpinner.succeed(chalk.green('✓ Backend code pushed to GitHub (Triggering Render).'));
       }
     } catch (error) {
-      gitSpinner.fail(chalk.red('✗ GitHub push failed.'));
-      console.error(error.message);
+      gitSpinner.fail(chalk.red('✗ GitHub push failed. (Ensure you have a remote "origin" and permissions)'));
+      console.error(chalk.gray(error.message));
       process.exit(1);
     }
 
@@ -171,7 +177,7 @@ program
 
     // Step 8: Final results
     console.log(chalk.bold.cyan('\n✨ Deployment Summary:'));
-    console.log(chalk.white(`Frontend URL:    ${chalk.underline('https://botman.vercel.app')}`));
+    console.log(chalk.white(`Frontend URL:    ${chalk.underline(frontendUrl)}`));
     console.log(chalk.white(`Backend API URL: ${chalk.underline('https://botman-api.onrender.com')}`));
     console.log(chalk.white(`Worker Status:   ${chalk.green('Running')}`));
     console.log(chalk.bold.green('\n✅ Botman deployment complete!\n'));
