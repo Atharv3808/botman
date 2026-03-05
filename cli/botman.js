@@ -244,7 +244,7 @@ program
     try {
       const { stdout } = await run('docker', ['ps', '--format', '{{.Names}}']);
       if (stdout.includes('botman')) {
-        dockerSpinner.succeed(chalk.green('✓ Botman containers are running locally.'));
+        dockerSpinner.succeed(chalk.green(`✓ Botman containers are running locally: ${stdout.split('\n').filter(n => n.includes('botman')).join(', ')}`));
       } else {
         dockerSpinner.info(chalk.white('- No Botman containers running locally.'));
       }
