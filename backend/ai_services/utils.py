@@ -2,7 +2,7 @@
 import os
 from pypdf import PdfReader
 from openai import OpenAI
-import google.generativeai as genai
+import google.genai as genai
 from pgvector.django import CosineDistance
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from knowledge.models import KnowledgeChunk
