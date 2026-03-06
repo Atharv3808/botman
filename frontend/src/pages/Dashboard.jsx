@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getBots, createBot, deleteBot } from '../api/client';
 import { Plus, MessageSquare, Settings, BarChart, Trash2 } from 'lucide-react';
 
@@ -8,6 +8,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [newBotName, setNewBotName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadBots();
@@ -48,7 +49,11 @@ export default function Dashboard() {
       setIsCreating(false);
       loadBots();
     } catch (error) {
-      console.error('Failed to create bot:', error);
+      if (error.response && error.response.status === 403) {
+        navigate('/upgrade-plan');
+      } else {
+        console.error('Failed to create bot:', error);
+      }
     }
   };
 

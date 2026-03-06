@@ -11,10 +11,3 @@ google-generativeai
 pgvector
 pypdf
 django-filter==25.2
-gunicorn
-django-redis
-whitenoise
-dj-database-url
-gunicorn
-django-redis
-whitenoise

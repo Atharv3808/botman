@@ -8,6 +8,7 @@ import ProviderView from './pages/studio/ProviderView';
 import AnalyticsView from './pages/studio/AnalyticsView';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import UpgradePlanPage from './pages/UpgradePlanPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -30,6 +31,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/upgrade-plan" element={<ProtectedRoute><UpgradePlanPage /></ProtectedRoute>} />
           
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/conversations" element={<ProtectedRoute><Conversations /></ProtectedRoute>} />

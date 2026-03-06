@@ -1,13 +1,30 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { login } from '../api/client';
-import { ArrowRight, Chrome, Twitter, Github } from 'lucide-react';
+import { login, googleLogin } from '../api/client';
+import { ArrowRight, Chrome, Github } from 'lucide-react';
+import { auth, googleProvider } from '../firebase';
+import { signInWithPopup } from 'firebase/auth';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const idToken = await result.user.getIdToken();
+      const response = await googleLogin(idToken);
+      localStorage.setItem('access_token', response.data.access);
+      localStorage.setItem('refresh_token', response.data.refresh);
+      navigate('/');
+    } catch (err) {
+      console.error(err);
+      setError('Google Sign-In failed. Please try again.');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,22 +117,15 @@ export default function Login() {
           </div>
 
           <div className="space-y-3">
-            <button className="w-full flex items-center justify-between bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-4 text-white/70 hover:bg-white/[0.06] hover:text-white transition-all duration-200 group">
+            <button 
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-between bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-4 text-white/70 hover:bg-white/[0.06] hover:text-white transition-all duration-200 group"
+            >
               <div className="flex items-center gap-4">
                 <div className="w-6 h-6 flex items-center justify-center text-white/60">
                   <Chrome size={20} />
                 </div>
                 <span className="text-sm font-medium">Continue with Google</span>
-              </div>
-              <ArrowRight size={16} className="text-white/20 group-hover:text-white/60 transition-colors" />
-            </button>
-
-            <button className="w-full flex items-center justify-between bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-4 text-white/70 hover:bg-white/[0.06] hover:text-white transition-all duration-200 group">
-              <div className="flex items-center gap-4">
-                <div className="w-6 h-6 flex items-center justify-center text-white/60">
-                  <Twitter size={20} />
-                </div>
-                <span className="text-sm font-medium">Continue with X</span>
               </div>
               <ArrowRight size={16} className="text-white/20 group-hover:text-white/60 transition-colors" />
             </button>

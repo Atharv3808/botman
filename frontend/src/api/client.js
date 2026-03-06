@@ -1,11 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://botman-api.onrender.com' 
-  : 'http://localhost:8000';
-
 const client = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  baseURL: 'http://localhost:8000/api', // Adjust if backend prefix is different
   headers: {
     'Content-Type': 'application/json',
   },
@@ -33,7 +29,7 @@ client.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh/`, {
+          const response = await axios.post('http://localhost:8000/auth/refresh/', {
             refresh: refreshToken,
           });
 
@@ -57,8 +53,9 @@ client.interceptors.response.use(
 );
 
 // Auth API
-export const login = (credentials) => axios.post(`${API_BASE_URL}/auth/login/`, credentials);
-export const signup = (userData) => axios.post(`${API_BASE_URL}/auth/signup/`, userData);
+export const login = (credentials) => axios.post('http://localhost:8000/auth/login/', credentials);
+export const signup = (userData) => axios.post('http://localhost:8000/auth/signup/', userData);
+export const googleLogin = (idToken) => axios.post('http://localhost:8000/auth/google/', { id_token: idToken });
 
 export const getBots = () => client.get('/bot/');
 export const getBot = (id) => client.get(`/bot/${id}/`);

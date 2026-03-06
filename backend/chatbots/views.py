@@ -9,6 +9,7 @@ from .serializers import ChatbotSerializer, StudioSerializer
 from conversations.serializers import ChatRequestSerializer
 from conversations.services import process_chat_message
 import uuid
+from accounts.models import Subscription, Plan
 
 class ChatbotViewSet(viewsets.ModelViewSet):
     serializer_class = ChatbotSerializer
@@ -17,6 +18,25 @@ class ChatbotViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Only return chatbots owned by the current user
         return Chatbot.objects.filter(owner=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        if not user.is_superuser:
+            bot_count = Chatbot.objects.filter(owner=user).count()
+            try:
+                subscription = user.subscription
+            except Subscription.DoesNotExist:
+                # If no subscription, create a free one
+                free_plan = Plan.objects.get(name='Free')
+                subscription = Subscription.objects.create(user=user, plan=free_plan)
+            
+            if subscription.plan and bot_count >= subscription.plan.bot_limit:
+                return Response(
+                    {"error": "Bot limit reached. Upgrade your plan to create more bots."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         # Automatically set the owner to the current user
