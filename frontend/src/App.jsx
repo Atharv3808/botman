@@ -6,6 +6,7 @@ import SettingsView from './pages/studio/SettingsView';
 import KnowledgeView from './pages/studio/KnowledgeView';
 import ProviderView from './pages/studio/ProviderView';
 import AnalyticsView from './pages/studio/AnalyticsView';
+import TelegramView from './pages/studio/TelegramView';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import UpgradePlanPage from './pages/UpgradePlanPage';
@@ -41,6 +42,7 @@ function App() {
             <Route path="knowledge" element={<KnowledgeView />} />
             <Route path="provider" element={<ProviderView />} />
             <Route path="analytics" element={<AnalyticsView />} />
+            <Route path="telegram" element={<TelegramView />} />
           </Route>
         </Routes>
       </div>

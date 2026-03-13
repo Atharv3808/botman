@@ -60,8 +60,20 @@ def call_gemini(prompt, stream=False):
         if stream:
             return response
         else:
+            # Safely extract text from the first candidate's parts
+            try:
+                if response.candidates and response.candidates[0].content.parts:
+                    response_text = response.candidates[0].content.parts[0].text
+                else:
+                    response_text = "I'm sorry, I cannot generate a response to that prompt due to safety filters or an empty response."
+            except (AttributeError, IndexError):
+                # Fallback to simple .text if it's available and not blocked
+                try:
+                    response_text = response.text
+                except Exception:
+                    response_text = "The AI model returned an unexpected response structure."
+
             # Gemini usage_metadata
-            # structure: prompt_token_count, candidates_token_count, total_token_count
             usage = {}
             if hasattr(response, 'usage_metadata'):
                 usage = {
@@ -69,7 +81,7 @@ def call_gemini(prompt, stream=False):
                     'completion_tokens': response.usage_metadata.candidates_token_count,
                     'total_tokens': response.usage_metadata.total_token_count
                 }
-            return response.text, usage
+            return response_text, usage
     except Exception as e:
         Logger.error('AI', f"Gemini Call Failed: {e}", {'stream': stream})
         return f"Error calling Gemini: {e}", {}

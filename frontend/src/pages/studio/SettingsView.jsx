@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { getBotSettings, updateBotSettings } from '../../api/client';
 import { Save, AlertCircle } from 'lucide-react';
@@ -19,11 +19,7 @@ export default function SettingsView() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
 
-  useEffect(() => {
-    loadSettings();
-  }, [botId]);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const response = await getBotSettings(botId);
       // Ensure we have default values
@@ -43,7 +39,11 @@ export default function SettingsView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [botId]);
+  
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

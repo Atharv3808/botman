@@ -358,7 +358,7 @@
                           const jsonStr = line.substring(6);
                           try {
                               data = JSON.parse(jsonStr);
-                          } catch (e) {
+                          } catch {
                               console.error('Invalid JSON in SSE:', jsonStr);
                           }
                       }

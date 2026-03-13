@@ -32,6 +32,8 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else []
 
+BASE_URL = os.getenv('BASE_URL', None)
+
 
 # Application definition
 
@@ -57,8 +59,10 @@ INSTALLED_APPS = [
     'analytics',
     'widgets',
     'ai_services',
+    'django_dramatiq',
     'health',
     'monitoring',
+    'integrations.telegram',
 ]
 
 MIDDLEWARE = [
@@ -172,6 +176,21 @@ REST_FRAMEWORK = {
         'public_widget': '100/min',
     }
 }
+
+DRAMATIQ_BROKER = {
+    "BROKER": "dramatiq.brokers.redis.RedisBroker",
+    "OPTIONS": {
+        "url": os.getenv('REDIS_URL', 'redis://localhost:6379/1'),
+    },
+}
+
+# Celery Configuration
+CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/1')
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/1')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
 
 # Cache Configuration (Redis)
 CACHES = {

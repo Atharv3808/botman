@@ -16,7 +16,7 @@ export default function Signup() {
     try {
       await signup({ username, email, password });
       navigate('/login');
-    } catch (err) {
+    } catch {
       setError('Failed to create account. Username might be taken.');
     }
   };

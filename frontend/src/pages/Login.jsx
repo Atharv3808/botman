@@ -34,7 +34,7 @@ export default function Login() {
       localStorage.setItem('access_token', response.data.access);
       localStorage.setItem('refresh_token', response.data.refresh);
       navigate('/');
-    } catch (err) {
+    } catch {
       setError('Invalid credentials');
     }
   };

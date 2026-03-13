@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/', include('conversations.urls')),
     path('api/', include('analytics.urls')),
     path('api/', include('health.urls')),
+    path('api/integrations/telegram/', include('integrations.telegram.urls')),
     path('widget/', include('widgets.urls')),
     path('public/chat/<uuid:widget_token>/', PublicChatView.as_view(), name='public_chat'),
 ]

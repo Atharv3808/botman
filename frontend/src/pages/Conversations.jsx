@@ -26,18 +26,27 @@ export default function Conversations() {
   });
 
   useEffect(() => {
-    fetchBots();
-    fetchConversations();
+    const init = async () => {
+      try {
+        const botsRes = await getBots();
+        setBots(botsRes.data);
+      } catch (err) {
+        console.error("Failed to fetch bots", err);
+      }
+      try {
+        const res = await getConversations({});
+        const data = res.data.results ? res.data.results : res.data;
+        setConversations(data);
+      } catch (err) {
+        console.error("Failed to fetch conversations", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
-  const fetchBots = async () => {
-    try {
-      const res = await getBots();
-      setBots(res.data);
-    } catch (err) {
-      console.error("Failed to fetch bots", err);
-    }
-  };
+  // removed unused fetchBots
 
   const fetchConversations = async () => {
     setLoading(true);

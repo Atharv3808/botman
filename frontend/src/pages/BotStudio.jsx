@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, NavLink, Outlet, Link } from 'react-router-dom';
 import { getBot, publishBot } from '../api/client';
-import { Settings, Database, Shield, ArrowLeft, BarChart, MessageSquare, Rocket, X, Copy, Check } from 'lucide-react';
+import { Settings, Database, Shield, ArrowLeft, BarChart, MessageSquare, Rocket, X, Copy, Check, Send } from 'lucide-react';
 import ChatPreview from '../components/ChatPreview';
 
 export default function BotStudio() {
@@ -13,11 +13,7 @@ export default function BotStudio() {
   const [publishResult, setPublishResult] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    loadBot();
-  }, [botId]);
-
-  const loadBot = async () => {
+  const loadBot = useCallback(async () => {
     try {
       const response = await getBot(botId);
       setBot(response.data);
@@ -26,7 +22,11 @@ export default function BotStudio() {
     } finally {
       setLoading(false);
   }
-};
+}, [botId]);
+
+  useEffect(() => {
+    loadBot();
+  }, [loadBot]);
 
   const handlePublish = async () => {
     setIsPublishing(true);
@@ -54,6 +54,7 @@ export default function BotStudio() {
     { to: 'knowledge', icon: Database, label: 'Knowledge' },
     { to: 'provider', icon: Shield, label: 'Provider' },
     { to: 'analytics', icon: BarChart, label: 'Analytics' },
+    { to: 'telegram', icon: Send, label: 'Telegram' },
   ];
 
   return (

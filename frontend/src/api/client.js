@@ -40,7 +40,7 @@ client.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${access}`;
           return client(originalRequest);
         }
-      } catch (refreshError) {
+      } catch {
         // Refresh failed (token expired or invalid)
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
@@ -89,5 +89,8 @@ export const getAnalyticsLive = (botId, include_preview = false) =>
 // Conversations
 export const getConversations = (params) => client.get('/history/', { params });
 export const getConversation = (id) => client.get(`/history/${id}/`);
+
+// Telegram Integration
+export const connectTelegram = (data) => client.post('/integrations/telegram/connect/', data);
 
 export default client;

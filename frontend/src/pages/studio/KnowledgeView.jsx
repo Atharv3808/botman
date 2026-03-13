@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { getKnowledgeFiles, uploadKnowledgeFile, getKnowledgePreview, deleteKnowledgeFile } from '../../api/client';
 import { Upload, FileText, CheckCircle, AlertCircle, RefreshCw, Eye, X, Loader2, Trash2 } from 'lucide-react';
@@ -6,7 +6,6 @@ import { Upload, FileText, CheckCircle, AlertCircle, RefreshCw, Eye, X, Loader2,
 export default function KnowledgeView() {
   const { botId } = useParams();
   const [files, setFiles] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState(null);
   
@@ -19,79 +18,7 @@ export default function KnowledgeView() {
   const pollIntervalRef = useRef(null);
   const previewPollIntervalRef = useRef(null);
 
-  useEffect(() => {
-    loadFiles();
-    
-    // Start polling for file status
-    startPolling();
-    
-    return () => {
-      stopPolling();
-      stopPreviewPolling();
-    };
-  }, [botId]);
-
-  // Preview Polling Effect
-  useEffect(() => {
-    if (previewFile) {
-      loadPreview(previewFile.id);
-      
-      // If file is processing, poll for new chunks
-      if (previewFile.status === 'processing' || previewFile.status === 'pending') {
-        startPreviewPolling(previewFile.id);
-      } else {
-        stopPreviewPolling();
-      }
-    } else {
-      stopPreviewPolling();
-      setPreviewChunks([]);
-    }
-  }, [previewFile]);
-
-  const startPolling = () => {
-    stopPolling();
-    pollIntervalRef.current = setInterval(loadFiles, 3000); // Poll every 3s
-  };
-
-  const stopPolling = () => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-  };
-
-  const startPreviewPolling = (fileId) => {
-    stopPreviewPolling();
-    previewPollIntervalRef.current = setInterval(() => loadPreview(fileId, true), 2000); // Poll chunks every 2s
-  };
-
-  const stopPreviewPolling = () => {
-    if (previewPollIntervalRef.current) {
-      clearInterval(previewPollIntervalRef.current);
-      previewPollIntervalRef.current = null;
-    }
-  };
-
-  const loadFiles = async () => {
-    try {
-      const response = await getKnowledgeFiles(botId);
-      setFiles(response.data);
-      
-      // Update previewFile status if it's currently open
-      if (previewFile) {
-        const currentFile = response.data.find(f => f.id === previewFile.id);
-        if (currentFile && currentFile.status !== previewFile.status) {
-          setPreviewFile(prev => ({ ...prev, status: currentFile.status }));
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load knowledge files:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadPreview = async (fileId, isPolling = false) => {
+  const loadPreview = useCallback(async (fileId, isPolling = false) => {
     if (!isPolling) setPreviewLoading(true);
     try {
       const response = await getKnowledgePreview(fileId);
@@ -101,7 +28,69 @@ export default function KnowledgeView() {
     } finally {
       if (!isPolling) setPreviewLoading(false);
     }
+  }, []);
+
+  const loadFiles = useCallback(async () => {
+    try {
+      const response = await getKnowledgeFiles(botId);
+      setFiles(response.data);
+      if (previewFile) {
+        const currentFile = response.data.find(f => f.id === previewFile.id);
+        if (currentFile && currentFile.status !== previewFile.status) {
+          setPreviewFile(prev => ({ ...prev, status: currentFile.status }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load knowledge files:', error);
+    }
+  }, [botId, previewFile]);
+
+  const startPolling = useCallback(() => {
+    stopPolling();
+    pollIntervalRef.current = setInterval(loadFiles, 3000);
+  }, [loadFiles]);
+
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
   };
+
+  const startPreviewPolling = useCallback((fileId) => {
+    stopPreviewPolling();
+    previewPollIntervalRef.current = setInterval(() => loadPreview(fileId, true), 2000);
+  }, [loadPreview]);
+
+  const stopPreviewPolling = () => {
+    if (previewPollIntervalRef.current) {
+      clearInterval(previewPollIntervalRef.current);
+      previewPollIntervalRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    loadFiles();
+    startPolling();
+    return () => {
+      stopPolling();
+      stopPreviewPolling();
+    };
+  }, [botId, loadFiles, startPolling]);
+
+  useEffect(() => {
+    if (previewFile) {
+      loadPreview(previewFile.id);
+      if (previewFile.status === 'processing' || previewFile.status === 'pending') {
+        startPreviewPolling(previewFile.id);
+      } else {
+        stopPreviewPolling();
+      }
+    } else {
+      stopPreviewPolling();
+      setPreviewChunks([]);
+    }
+  }, [previewFile, loadPreview, startPreviewPolling]);
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];

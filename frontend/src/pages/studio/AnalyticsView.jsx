@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { getAnalyticsOverview, getAnalyticsGraph, getAnalyticsLive } from '../../api/client';
 import { Users, MessageSquare, Clock, Zap, RefreshCw, Activity, Database, Server } from 'lucide-react';
@@ -15,13 +15,26 @@ export default function AnalyticsView() {
   const [loading, setLoading] = useState(true);
   const [includePreview, setIncludePreview] = useState(false);
 
-  useEffect(() => {
-    fetchAllData();
-    const interval = setInterval(fetchLiveData, 30000); // Poll live data every 30s
-    return () => clearInterval(interval);
+  const fetchOverview = useCallback(async () => {
+    const res = await getAnalyticsOverview(botId, includePreview);
+    setOverview(res.data);
   }, [botId, includePreview]);
 
-  const fetchAllData = async () => {
+  const fetchGraph = useCallback(async () => {
+    const res = await getAnalyticsGraph(botId, includePreview);
+    setGraphData(res.data);
+  }, [botId, includePreview]);
+
+  const fetchLiveData = useCallback(async () => {
+    try {
+      const res = await getAnalyticsLive(botId, includePreview);
+      setLiveStats(res.data);
+    } catch (error) {
+      console.error("Failed to fetch live stats", error);
+    }
+  }, [botId, includePreview]);
+
+  const fetchAllData = useCallback(async () => {
     setLoading(true);
     try {
       await Promise.all([
@@ -34,33 +47,20 @@ export default function AnalyticsView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchOverview, fetchGraph, fetchLiveData]);
 
-  const fetchOverview = async () => {
-    const res = await getAnalyticsOverview(botId, includePreview);
-    setOverview(res.data);
-  };
+  useEffect(() => {
+    fetchAllData();
+    const interval = setInterval(fetchLiveData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchAllData, fetchLiveData]);
 
-  const fetchGraph = async () => {
-    const res = await getAnalyticsGraph(botId, includePreview);
-    setGraphData(res.data);
-  };
-
-  const fetchLiveData = async () => {
-    try {
-      const res = await getAnalyticsLive(botId, includePreview);
-      setLiveStats(res.data);
-    } catch (error) {
-      console.error("Failed to fetch live stats", error);
-    }
-  };
-
-  const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
+  const StatCard = ({ title, value, icon, color, subtext }) => (
     <div className="bg-[#161616]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white/60 text-sm font-medium">{title}</h3>
         <div className={`p-2 rounded-lg ${color}`}>
-          <Icon size={20} />
+          {React.createElement(icon, { size: 20 })}
         </div>
       </div>
       <div className="text-3xl font-semibold text-white">{value}</div>

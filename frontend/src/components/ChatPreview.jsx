@@ -10,12 +10,12 @@ export default function ChatPreview({ botId, onMinimize }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
-  const [sessionId, setSessionId] = useState(`test-${Date.now()}`);
+  const [sessionId] = useState(`test-${Date.now()}`);
   
   // Voice State
   const [isListening, setIsListening] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
-  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [voiceEnabled] = useState(false);
+  const [showVoiceSettings] = useState(false);
   const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(null);
 
@@ -111,13 +111,6 @@ export default function ChatPreview({ botId, onMinimize }) {
       );
       if (started) setIsListening(true);
     }
-  };
-
-  const handleReset = () => {
-    setMessages([{ role: 'assistant', content: 'Hello! How can I help you today?' }]);
-    setSessionId(`test-${Date.now()}`);
-    voiceManager.cancel();
-    setInput('');
   };
 
   return (
