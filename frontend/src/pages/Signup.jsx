@@ -16,8 +16,18 @@ export default function Signup() {
     try {
       await signup({ username, email, password });
       navigate('/login');
-    } catch {
-      setError('Failed to create account. Username might be taken.');
+    } catch (err) {
+      let errorMsg = 'Failed to create account. Username might be taken.';
+      if (err.response?.data) {
+        const data = err.response.data;
+        if (typeof data === 'string') errorMsg = data;
+        else if (data.error) errorMsg = data.error;
+        else if (Object.keys(data).length > 0) {
+          const firstError = data[Object.keys(data)[0]];
+          errorMsg = Array.isArray(firstError) ? firstError[0] : firstError;
+        }
+      }
+      setError(typeof errorMsg === 'string' ? errorMsg : 'Failed to create account.');
     }
   };
 

@@ -1,10 +1,13 @@
 
 import os
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
 from pypdf import PdfReader
 from openai import OpenAI
 import google.generativeai as genai
 from pgvector.django import CosineDistance
 from django.contrib.postgres.search import SearchQuery, SearchRank
+from django.db import connection
 from knowledge.models import KnowledgeChunk
 import numpy as np
 
@@ -103,13 +106,16 @@ def search_knowledge(chatbot, embedding, query_text=None, limit=5, threshold=0.4
     # --- 1. Semantic Search (Vector) ---
     vector_chunks = []
     try:
-        # Try DB-level search first (Postgres optimized)
-        vector_chunks = list(KnowledgeChunk.objects.filter(chatbot=chatbot).annotate(
-            distance=CosineDistance('embedding', embedding)
-        ).order_by('distance')[:limit*2])
+        if connection.vendor != 'sqlite':
+            # Try DB-level search first (Postgres optimized)
+            vector_chunks = list(KnowledgeChunk.objects.filter(chatbot=chatbot).annotate(
+                distance=CosineDistance('embedding', embedding)
+            ).order_by('distance')[:limit*2])
+        else:
+            raise Exception("SQLite cannot perform vector search, skipping to Python fallback.")
         
     except Exception as e:
-        Logger.warning('RAG_SEARCH', f"DB vector search failed (likely SQLite), falling back to Python: {e}")
+        Logger.info('RAG_SEARCH', f"{e}")
         try:
             # Fallback to Python-level search using numpy
             all_chunks = KnowledgeChunk.objects.filter(chatbot=chatbot, embedding__isnull=False)
@@ -161,21 +167,26 @@ def search_knowledge(chatbot, embedding, query_text=None, limit=5, threshold=0.4
 
     # --- 2. Keyword Search (BM25) ---
     keyword_chunks = []
-    try:
-        # Simple English search
-        search_query = SearchQuery(query_text, config='english')
-        keyword_chunks = list(KnowledgeChunk.objects.filter(
-            chatbot=chatbot,
-            search_vector=search_query
-        ).annotate(
-            rank=SearchRank('search_vector', search_query)
-        ).order_by('-rank')[:limit*2])
-        
-        Logger.info('RAG_SEARCH', f"Keyword search found {len(keyword_chunks)} chunks")
-        
-    except Exception as e:
-        Logger.warning('RAG_SEARCH', f"Keyword search failed (likely not Postgres): {e}")
-        keyword_chunks = []
+    if connection.vendor != 'sqlite':
+        try:
+            # Simple English search
+            search_query = SearchQuery(query_text, config='english')
+            keyword_chunks = list(KnowledgeChunk.objects.filter(
+                chatbot=chatbot,
+                search_vector=search_query
+            ).annotate(
+                rank=SearchRank('search_vector', search_query)
+            ).order_by('-rank')[:limit*2])
+            
+            Logger.info('RAG_SEARCH', f"Keyword search found {len(keyword_chunks)} chunks")
+            
+        except Exception as e:
+            Logger.warning('RAG_SEARCH', f"Keyword search failed (likely not Postgres): {e}")
+            keyword_chunks = []
+    else:
+        # SQLite doesn't support SearchQuery out of the box natively with Django ORM matching
+        keyword_chunks = list(KnowledgeChunk.objects.filter(chatbot=chatbot, content__icontains=query_text)[:limit*2])
+        Logger.info('RAG_SEARCH', f"SQLite Keyword fallback found {len(keyword_chunks)} chunks")
 
     # --- 3. Reciprocal Rank Fusion (RRF) ---
     # Combine results
