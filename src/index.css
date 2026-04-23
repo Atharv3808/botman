@@ -4,6 +4,10 @@
   --color-background: #050505;
   --color-accent-blue: #3B82F6;
   --color-accent-purple: #8B5CF6;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-teal-500: #14b8a6;
   
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;

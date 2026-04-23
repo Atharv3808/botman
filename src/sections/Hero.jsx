@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import FloatingNodes from '../components/FloatingNodes';
 import { Sparkles, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Hero() {
   const mouseX = useMotionValue(0);
@@ -62,12 +63,12 @@ export default function Hero() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="flex flex-wrap items-center justify-center gap-6"
         >
-          <button className="bg-botman-glow p-[1px] rounded-full group button-glow">
+          <Link to="/login" className="bg-botman-glow p-[1px] rounded-full group button-glow">
             <div className="bg-[#050505] group-hover:bg-transparent transition-all px-10 py-4 rounded-full flex items-center gap-2 font-bold text-lg text-white">
               Start Building 
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </div>
-          </button>
+          </Link>
           
           <button className="px-10 py-4 rounded-full font-bold text-lg border border-white/20 hover:bg-white/10 hover:border-white/40 transition-all text-white backdrop-blur-sm">
             View Demo
