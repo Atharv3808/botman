@@ -26,6 +26,7 @@ class Chatbot(models.Model):
     description = models.TextField(blank=True)
     system_prompt = models.TextField(default="You are a helpful AI assistant.", blank=True)
     selected_llm = models.CharField(max_length=50, choices=LLM_CHOICES, default='gemini')
+    provider_config = models.ForeignKey('ai_services.ProviderConfiguration', on_delete=models.SET_NULL, null=True, blank=True)
     
     # Personality & Behavior
     bot_type = models.CharField(max_length=50, choices=BOT_TYPE_CHOICES, default='custom')
@@ -43,6 +44,7 @@ class Chatbot(models.Model):
     is_published = models.BooleanField(default=False)
     published_config = models.JSONField(default=dict, blank=True)
     bot_prompt_config = models.JSONField(default=dict, blank=True, help_text="Configuration for system prompt, personality, fallback, and guardrails.")
+    formatting_config = models.JSONField(default=dict, blank=True, help_text="Configuration for response formatting (markdown, code_highlight, tables, etc.)")
     
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='chatbots')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -63,6 +65,7 @@ class Chatbot(models.Model):
             'selected_llm': self.selected_llm,
             'allowed_domains': self.allowed_domains,
             'bot_prompt_config': self.bot_prompt_config,
+            'formatting_config': self.formatting_config,
             'bot_type': self.bot_type,
             'personality': self.personality,
             'tone': self.tone,

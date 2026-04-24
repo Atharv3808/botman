@@ -20,11 +20,18 @@ def custom_exception_handler(exc, context):
     # We should handle it to return JSON instead of HTML/Django default 500
     if response is None:
         logger.error(f"Unhandled exception: {exc}", exc_info=True)
+        from monitoring.utils import Logger
+        Logger.error('SERVER', f"Unhandled exception: {exc}")
         return Response({
             "success": False,
             "message": "An unexpected server error occurred.",
             "error_code": "SERVER_ERROR"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # Log authentication failures for debugging
+    if response.status_code == 401:
+        from monitoring.utils import Logger
+        Logger.warning('AUTH', f"Authentication failed: {exc}")
 
     # Default values
     error_code = "API_ERROR"

@@ -54,8 +54,8 @@ def call_gemini(prompt, stream=False):
 
     try:
         genai.configure(api_key=api_key)
-        # using gemini-flash-latest model as it is free tier eligible
-        model = genai.GenerativeModel('gemini-flash-latest')
+        # using gemini-flash-lite-latest as it has better free tier limits and stability
+        model = genai.GenerativeModel('gemini-flash-lite-latest')
         response = model.generate_content(prompt, stream=stream)
         if stream:
             return response

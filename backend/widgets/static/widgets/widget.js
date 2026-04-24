@@ -53,6 +53,9 @@
 
     async init() {
       console.log("Botman: Initializing for bot:", this.botId);
+
+      // Load dependencies (Marked and Highlight.js)
+      await this.loadDependencies();
       
       // Try to load config from sessionStorage first to avoid unnecessary network requests
       const cachedConfigKey = `botman_config_${this.botId}`;
@@ -90,6 +93,55 @@
 
       // 3. Setup UI Container (Shadow DOM)
       this.setupUI();
+    }
+
+    async loadDependencies() {
+      const dependencies = [
+        { id: 'marked-js', url: 'https://cdn.jsdelivr.net/npm/marked/marked.min.js' },
+        { id: 'highlight-js', url: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js' },
+        { id: 'highlight-css', url: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css', type: 'style' }
+      ];
+
+      const loaders = dependencies.map(dep => {
+        return new Promise((resolve, reject) => {
+          if (document.getElementById(dep.id)) return resolve();
+          
+          if (dep.type === 'style') {
+            const link = document.createElement('link');
+            link.id = dep.id;
+            link.rel = 'stylesheet';
+            link.href = dep.url;
+            link.onload = resolve;
+            link.onerror = reject;
+            document.head.appendChild(link);
+          } else {
+            const script = document.createElement('script');
+            script.id = dep.id;
+            script.src = dep.url;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          }
+        });
+      });
+
+      try {
+        await Promise.all(loaders);
+        // Configure marked to use highlight.js
+        if (window.marked && window.hljs) {
+          window.marked.setOptions({
+            highlight: function(code, lang) {
+              const language = window.hljs.getLanguage(lang) ? lang : 'plaintext';
+              return window.hljs.highlight(code, { language }).value;
+            },
+            langPrefix: 'hljs language-',
+            breaks: true,
+            gfm: true
+          });
+        }
+      } catch (err) {
+        console.error("Botman: Failed to load dependencies", err);
+      }
     }
 
     setupUI() {
@@ -178,15 +230,29 @@
           background: #f9fafb;
         }
         .message {
-          max-width: 80%;
-          padding: 10px 14px;
+          max-width: 85%;
+          padding: 12px 16px;
           border-radius: 12px;
           font-size: 14px;
-          line-height: 1.4;
+          line-height: 1.6;
           word-wrap: break-word;
         }
         .message.bot { background: white; border: 1px solid #e5e7eb; align-self: flex-start; border-bottom-left-radius: 2px; }
         .message.user { background: ${primaryColor}; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+
+        /* Markdown Styles */
+        .message.bot p { margin: 0 0 12px 0; }
+        .message.bot p:last-child { margin-bottom: 0; }
+        .message.bot ul, .message.bot ol { margin: 0 0 12px 20px; padding: 0; }
+        .message.bot li { margin-bottom: 4px; }
+        .message.bot h1, .message.bot h2, .message.bot h3 { margin: 16px 0 8px 0; font-size: 1.1em; }
+        .message.bot pre { background: #1f2937; color: white; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 12px 0; }
+        .message.bot code { font-family: monospace; background: #f3f4f6; padding: 2px 4px; border-radius: 4px; font-size: 0.9em; }
+        .message.bot pre code { background: transparent; padding: 0; }
+        .message.bot table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9em; }
+        .message.bot th, .message.bot td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+        .message.bot th { background: #f9fafb; }
+        .message.bot blockquote { border-left: 4px solid #e5e7eb; margin: 12px 0; padding-left: 16px; color: #6b7280; font-style: italic; }
 
         .botman-input-area {
           padding: 16px;
@@ -322,7 +388,12 @@
       
       const msg = document.createElement('div');
       msg.className = `message ${role}`;
-      msg.textContent = text;
+      
+      if (role === 'bot' && window.marked) {
+        msg.innerHTML = window.marked.parse(text);
+      } else {
+        msg.textContent = text;
+      }
       
       container.insertBefore(msg, typing);
       container.scrollTop = container.scrollHeight;
@@ -359,6 +430,7 @@
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let botMessageElement = null;
+      let fullText = "";
 
       while (true) {
         const { value, done } = await reader.read();
@@ -385,7 +457,13 @@
                   container.insertBefore(botMessageElement, typing);
                 }
                 
-                botMessageElement.textContent += content;
+                fullText += content;
+                if (window.marked) {
+                  botMessageElement.innerHTML = window.marked.parse(fullText);
+                } else {
+                  botMessageElement.textContent = fullText;
+                }
+                
                 const container = this.shadow.getElementById('botman-messages');
                 container.scrollTop = container.scrollHeight;
               }

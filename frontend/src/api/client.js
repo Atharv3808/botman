@@ -37,7 +37,11 @@ client.interceptors.response.use(
           localStorage.setItem('access_token', access);
 
           // Update header for original request
-          originalRequest.headers.Authorization = `Bearer ${access}`;
+          if (originalRequest.headers.set) {
+            originalRequest.headers.set('Authorization', `Bearer ${access}`);
+          } else {
+            originalRequest.headers.Authorization = `Bearer ${access}`;
+          }
           return client(originalRequest);
         }
       } catch {
@@ -92,5 +96,15 @@ export const getConversation = (id) => client.get(`/history/${id}/`);
 
 // Telegram Integration
 export const connectTelegram = (data) => client.post('/integrations/telegram/connect/', data);
+
+// AI Provider Configuration
+export const getProviders = () => client.get('/ai/providers/');
+export const getProvider = (id) => client.get(`/ai/providers/${id}/`);
+export const createProvider = (data) => client.post('/ai/providers/', data);
+export const updateProvider = (id, data) => client.patch(`/ai/providers/${id}/`, data);
+export const deleteProvider = (id) => client.delete(`/ai/providers/${id}/`);
+export const testProviderConnection = (id) => client.post(`/ai/providers/${id}/test_connection/`);
+export const rollbackProvider = (id, version) => client.post(`/ai/providers/${id}/rollback/`, { version });
+export const getProviderLogs = () => client.get('/ai/provider-logs/');
 
 export default client;

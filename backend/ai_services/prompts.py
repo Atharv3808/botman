@@ -23,13 +23,32 @@ def build_rag_prompt(chatbot, context, history, question):
     parts = []
 
     # 1. Base System Instruction / Fallback
+    formatting_config = getattr(chatbot, 'formatting_config', {}) or {}
+    use_markdown = formatting_config.get('use_markdown', True)
+    use_code_blocks = formatting_config.get('use_code_blocks', True)
+    use_tables = formatting_config.get('use_tables', True)
+    
+    formatting_parts = []
+    if use_markdown:
+        formatting_parts.append("Format your response using proper Markdown.")
+        formatting_parts.append("Use headers (##) for sections.")
+        formatting_parts.append("Use bullet points for lists.")
+    if use_code_blocks:
+        formatting_parts.append("Use code blocks with language tags for snippets (e.g., ```python).")
+    if use_tables:
+        formatting_parts.append("Use markdown tables for structured data when applicable.")
+    
+    formatting_instruction = ""
+    if formatting_parts:
+        formatting_instruction = "\nIMPORTANT: " + " ".join(formatting_parts) + " Keep paragraphs short and use bold text for key terms."
+    
     if context:
         base_system = (
             "You are a business AI assistant.\n"
             "Answer using provided context.\n"
             "If answer not found say you don't know."
         )
-        parts.append(f"System:\n{base_system}")
+        parts.append(f"System:\n{base_system}{formatting_instruction}")
     else:
         # Fallback to general AI provider (General Knowledge)
         if fallback_behavior:
@@ -39,7 +58,7 @@ def build_rag_prompt(chatbot, context, history, question):
                 "You are a business AI assistant.\n"
                 "Answer the user's question helpfully and accurately using your general knowledge."
             )
-        parts.append(f"System:\n{base_system}")
+        parts.append(f"System:\n{base_system}{formatting_instruction}")
     
     # 2. Personality & Tone
     if personality:

@@ -22,14 +22,17 @@ class TranslationService:
             else:
                 response, _ = call_openai(prompt)
             
+            if not response or response.startswith("Error"):
+                return 'English', text
+
             # Clean response to ensure valid JSON (remove markdown fences if any)
             cleaned_response = response.strip().replace('```json', '').replace('```', '')
             data = json.loads(cleaned_response)
             
             return data.get('language', 'English'), data.get('translated_text', text)
             
-        except Exception as e:
-            Logger.error('TRANSLATION', f"Input translation failed: {e}")
+        except (json.JSONDecodeError, Exception) as e:
+            Logger.warning('TRANSLATION', f"Input translation parse failed (falling back to English): {e}")
             # Fallback: assume English or return original
             return 'English', text
 
@@ -54,8 +57,11 @@ class TranslationService:
             else:
                 response, _ = call_openai(prompt)
             
+            if not response or response.startswith("Error"):
+                return text
+                
             return response.strip()
             
         except Exception as e:
-            Logger.error('TRANSLATION', f"Output translation failed: {e}")
+            Logger.warning('TRANSLATION', f"Output translation failed: {e}")
             return text

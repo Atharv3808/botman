@@ -11,3 +11,4 @@ google-generativeai
 pgvector
 pypdf
 django-filter==25.2
+cryptography

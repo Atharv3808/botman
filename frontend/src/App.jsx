@@ -10,6 +10,7 @@ import TelegramView from './pages/studio/TelegramView';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import UpgradePlanPage from './pages/UpgradePlanPage';
+import AdminProviderConfig from './pages/AdminProviderConfig';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -33,6 +34,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/upgrade-plan" element={<ProtectedRoute><UpgradePlanPage /></ProtectedRoute>} />
+          <Route path="/admin/providers" element={<ProtectedRoute><AdminProviderConfig /></ProtectedRoute>} />
           
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/conversations" element={<ProtectedRoute><Conversations /></ProtectedRoute>} />

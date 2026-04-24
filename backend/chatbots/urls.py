@@ -1,8 +1,8 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import SimpleRouter
 from .views import ChatbotViewSet
 
-router = DefaultRouter()
+router = SimpleRouter()
 router.register(r'chatbots', ChatbotViewSet, basename='chatbot')
 router.register(r'bot', ChatbotViewSet, basename='bot')
 

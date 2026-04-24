@@ -12,6 +12,38 @@ from knowledge.models import KnowledgeChunk
 import numpy as np
 
 from monitoring.utils import Logger
+from cryptography.fernet import Fernet
+import base64
+from django.conf import settings
+
+def get_cipher():
+    """Returns a Fernet cipher using the Django SECRET_KEY."""
+    # Fernet requires a 32-byte url-safe base64-encoded key
+    # We'll pad or truncate the SECRET_KEY to get exactly 32 bytes
+    key = settings.SECRET_KEY.encode()
+    if len(key) < 32:
+        key = key.ljust(32, b'0')
+    else:
+        key = key[:32]
+    return Fernet(base64.urlsafe_b64encode(key))
+
+def encrypt_data(data):
+    """Encrypts string data."""
+    if not data:
+        return None
+    cipher = get_cipher()
+    return cipher.encrypt(data.encode()).decode()
+
+def decrypt_data(encrypted_data):
+    """Decrypts string data."""
+    if not encrypted_data:
+        return None
+    cipher = get_cipher()
+    try:
+        return cipher.decrypt(encrypted_data.encode()).decode()
+    except Exception as e:
+        Logger.error('ENCRYPTION', f"Decryption failed: {e}")
+        return None
 
 def extract_text_from_file(file_path):
     """

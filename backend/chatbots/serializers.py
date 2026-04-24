@@ -13,7 +13,7 @@ class ChatbotSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Chatbot
-        fields = ['id', 'name', 'description', 'system_prompt', 'bot_type', 'personality', 'tone', 'fallback_behavior', 'allowed_domains', 'selected_llm', 'widget_token', 'secret_key', 'is_active', 'is_published', 'created_at', 'telegram_integration']
+        fields = ['id', 'name', 'description', 'system_prompt', 'bot_type', 'personality', 'tone', 'fallback_behavior', 'allowed_domains', 'selected_llm', 'provider_config', 'widget_token', 'secret_key', 'is_active', 'is_published', 'created_at', 'telegram_integration']
         read_only_fields = ['id', 'widget_token', 'secret_key', 'is_published', 'created_at']
 
 class StudioSerializer(serializers.ModelSerializer):

@@ -31,6 +31,7 @@ def process_chat_message(chatbot, visitor_id, message_text, stream=True, preview
         chatbot.system_prompt = config.get('system_prompt', chatbot.system_prompt)
         chatbot.selected_llm = config.get('selected_llm', chatbot.selected_llm)
         chatbot.bot_prompt_config = config.get('bot_prompt_config', getattr(chatbot, 'bot_prompt_config', {}))
+        chatbot.formatting_config = config.get('formatting_config', getattr(chatbot, 'formatting_config', {}))
 
     # Detect and translate language (step 1)
     original_language, translated_message_text = TranslationService.detect_and_translate(message_text, chatbot)

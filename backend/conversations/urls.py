@@ -1,8 +1,8 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import SimpleRouter
 from .views import ChatViewSet, ConversationHistoryViewSet, DebugRAGView
 
-router = DefaultRouter()
+router = SimpleRouter()
 router.register(r'chat', ChatViewSet, basename='chat')
 router.register(r'history', ConversationHistoryViewSet, basename='conversation-history')
 

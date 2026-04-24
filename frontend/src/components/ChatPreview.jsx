@@ -1,7 +1,105 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, RefreshCw, Loader2, Mic, MicOff, Volume2, VolumeX, Settings, ChevronDown, X } from 'lucide-react';
+import { Send, Bot, User, RefreshCw, Loader2, Mic, MicOff, Volume2, VolumeX, Settings, ChevronDown, X, Copy, Check } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { chatTest } from '../api/client';
 import { voiceManager } from '../utils/voiceManager';
+
+const CodeBlock = ({ language, value }) => {
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group my-4 rounded-lg overflow-hidden border border-white/10">
+      <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest font-bold text-white/40">
+        <span>{language || 'code'}</span>
+        <button 
+          onClick={copyToClipboard}
+          className="flex items-center gap-1.5 hover:text-white transition-colors"
+        >
+          {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <SyntaxHighlighter
+        language={language || 'text'}
+        style={vscDarkPlus}
+        customStyle={{
+          margin: 0,
+          padding: '1.25rem',
+          fontSize: '0.85rem',
+          backgroundColor: 'transparent',
+        }}
+      >
+        {value}
+      </SyntaxHighlighter>
+    </div>
+  );
+};
+
+const FormattedMessage = ({ content, role }) => {
+  if (role === 'user') {
+    return <div className="whitespace-pre-wrap">{content}</div>;
+  }
+
+  return (
+    <div className="markdown-content">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          code({ node, inline, className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '');
+            return !inline ? (
+              <CodeBlock
+                language={match ? match[1] : ''}
+                value={String(children).replace(/\n$/, '')}
+              />
+            ) : (
+              <code className="bg-white/10 px-1.5 py-0.5 rounded text-emerald-300 font-mono text-[0.9em]" {...props}>
+                {children}
+              </code>
+            );
+          },
+          p: ({ children }) => <p className="mb-4 last:mb-0 leading-relaxed">{children}</p>,
+          ul: ({ children }) => <ul className="list-disc ml-4 mb-4 space-y-2">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal ml-4 mb-4 space-y-2">{children}</ol>,
+          li: ({ children }) => <li className="pl-1">{children}</li>,
+          h1: ({ children }) => <h1 className="text-xl font-bold mb-4 mt-6 first:mt-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-lg font-bold mb-3 mt-5 first:mt-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-md font-bold mb-2 mt-4 first:mt-0">{children}</h3>,
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-4 border-emerald-500/30 pl-4 py-1 my-4 italic text-white/60 bg-white/5 rounded-r-lg">
+              {children}
+            </blockquote>
+          ),
+          table: ({ children }) => (
+            <div className="overflow-x-auto my-6 rounded-xl border border-white/10">
+              <table className="w-full text-left border-collapse">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-white/5 text-white/90 font-bold">{children}</thead>,
+          th: ({ children }) => <th className="p-3 border-b border-white/10">{children}</th>,
+          td: ({ children }) => <td className="p-3 border-b border-white/5 text-white/70">{children}</td>,
+          hr: () => <hr className="my-8 border-white/10" />,
+          a: ({ children, href }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+};
 
 export default function ChatPreview({ botId, onMinimize }) {
   const [messages, setMessages] = useState([
@@ -166,7 +264,7 @@ export default function ChatPreview({ botId, onMinimize }) {
                   : 'bg-[#1c1c1c] text-white/80 rounded-bl-none border border-white/10'
               }`}
             >
-              {msg.content}
+              <FormattedMessage content={msg.content} role={msg.role} />
             </div>
           </div>
         ))}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login, googleLogin } from '../api/client';
-import { ArrowRight, Chrome, Github } from 'lucide-react';
+import { ArrowRight, Globe } from 'lucide-react';
 import { auth, googleProvider } from '../firebase';
 import { signInWithPopup } from 'firebase/auth';
 
@@ -123,7 +123,7 @@ export default function Login() {
             >
               <div className="flex items-center gap-4">
                 <div className="w-6 h-6 flex items-center justify-center text-white/60">
-                  <Chrome size={20} />
+                  <Globe size={20} />
                 </div>
                 <span className="text-sm font-medium">Continue with Google</span>
               </div>

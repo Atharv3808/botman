@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getBots, createBot, deleteBot } from '../api/client';
-import { Plus, MessageSquare, Settings, BarChart, Trash2 } from 'lucide-react';
+import { Plus, MessageSquare, Settings, BarChart, Trash2, LogOut } from 'lucide-react';
 
 export default function Dashboard() {
   const [bots, setBots] = useState([]);
@@ -9,6 +9,12 @@ export default function Dashboard() {
   const [newBotName, setNewBotName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    navigate('/login');
+  };
 
   useEffect(() => {
     loadBots();
@@ -69,12 +75,26 @@ export default function Dashboard() {
             My <span className="text-white/60 font-normal">Bots</span>
           </h1>
           <div className="flex gap-3">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2.5 px-5 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all duration-200 group"
+            >
+              <LogOut size={18} />
+              <span className="text-sm font-medium">Logout</span>
+            </button>
             <Link 
               to="/conversations" 
               className="flex items-center gap-2.5 px-5 py-2.5 bg-white/[0.03] border border-white/10 rounded-xl text-white/70 hover:bg-white/[0.06] hover:text-white transition-all duration-200 group"
             >
               <MessageSquare size={18} />
               <span className="text-sm font-medium">Conversations</span>
+            </Link>
+            <Link 
+              to="/admin/providers" 
+              className="flex items-center gap-2.5 px-5 py-2.5 bg-white/[0.03] border border-white/10 rounded-xl text-white/70 hover:bg-white/[0.06] hover:text-white transition-all duration-200 group"
+            >
+              <Shield size={18} />
+              <span className="text-sm font-medium">Admin Providers</span>
             </Link>
             <button
               onClick={() => setIsCreating(true)}
