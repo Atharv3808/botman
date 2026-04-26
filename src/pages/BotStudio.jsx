@@ -128,6 +128,8 @@ export default function BotStudio() {
         )}
       </div>
 
+      
+
       {/* Right Preview Panel */}
       {isPreviewVisible && (
         <div className="w-[400px] bg-[#161616]/60 backdrop-blur-xl border-l border-white/5 shrink-0 flex flex-col">
