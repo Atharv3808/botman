@@ -4,7 +4,26 @@ from django.db.models import Count, Avg, Sum
 from datetime import timedelta
 from chatbots.models import Chatbot
 from conversations.models import Message, Session
-from .models import BotAnalyticsDaily
+from .models import BotAnalyticsDaily, RequestLog
+
+@shared_task
+def log_request_async(data):
+    """
+    Logs a request to the database asynchronously.
+    """
+    try:
+        # Resolve user if ID was passed
+        user_id = data.pop('user_id', None)
+        if user_id:
+            from accounts.models import User
+            try:
+                data['user'] = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                data['user'] = None
+        
+        RequestLog.objects.create(**data)
+    except Exception as e:
+        print(f"Error in log_request_async: {e}")
 
 @shared_task
 def aggregate_daily_analytics(date_str=None):

@@ -23,14 +23,10 @@ class Logger:
             
         # DB Logging
         try:
-            SystemLog.objects.create(
-                level=level,
-                category=category,
-                message=message,
-                metadata=metadata
-            )
+            from .tasks import log_system_event_async
+            log_system_event_async.delay(level, category, message, metadata)
         except Exception as e:
-            logger.error(f"Failed to write to SystemLog: {e}")
+            logger.error(f"Failed to queue SystemLog: {e}")
 
     @staticmethod
     def info(category, message, metadata=None):

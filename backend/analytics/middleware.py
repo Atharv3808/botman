@@ -25,25 +25,27 @@ class RequestLoggingMiddleware:
         else:
             ip = request.META.get('REMOTE_ADDR')
 
-        # Log to database
+        # Log to database asynchronously
         # Skip logging for high-frequency or public widget endpoints to avoid unnecessary DB writes
-        # Especially to prevent Live Server infinite reload loops in development
-        skip_paths = ['/widget/config/', '/api/health/']
+        skip_paths = ['/widget/config/', '/api/health/', '/static/', '/media/']
         if any(request.path.startswith(path) for path in skip_paths):
             return response
 
-        # We wrap in try-except to ensure logging failure doesn't break the response
+        from .tasks import log_request_async
+        
+        log_data = {
+            'endpoint': request.path,
+            'method': request.method,
+            'response_status': response.status_code,
+            'response_time': response_time_ms,
+            'ip_address': ip,
+            'user_id': user.id if user else None
+        }
+
         try:
-            RequestLog.objects.create(
-                endpoint=request.path,
-                method=request.method,
-                user=user,
-                response_status=response.status_code,
-                response_time=response_time_ms,
-                ip_address=ip
-            )
+            log_request_async.delay(log_data)
         except Exception as e:
-            # In a real production app, we might log this error to a file or sentry
-            print(f"Error logging request: {e}")
+            # Fallback if celery is not running
+            print(f"Error queuing request log: {e}")
 
         return response

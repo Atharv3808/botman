@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getBots, createBot, deleteBot } from '../api/client';
-import { Plus, MessageSquare, Settings, BarChart, Trash2, LogOut } from 'lucide-react';
+import { Plus, MessageSquare, Settings, BarChart, Trash2, LogOut, Shield } from 'lucide-react';
 
 export default function Dashboard() {
   const [bots, setBots] = useState([]);
@@ -23,7 +23,9 @@ export default function Dashboard() {
   const loadBots = async () => {
     try {
       const response = await getBots();
-      setBots(response.data);
+      // Handle paginated response
+      const data = response.data.results ? response.data.results : response.data;
+      setBots(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load bots:', error);
     } finally {
@@ -64,7 +66,7 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen bg-gray-50">Loading...</div>;
+    return <div className="flex items-center justify-center h-screen bg-[#0a0a0a] text-white/40">Loading...</div>;
   }
 
   return (

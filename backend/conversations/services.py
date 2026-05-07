@@ -176,9 +176,10 @@ def stream_response_generator(chatbot, prompt, conversation, start_time=None, so
     if chatbot.selected_llm == 'gemini':
         response_stream = call_gemini(prompt, stream=True)
         # Gemini stream returns chunks with .text
-        if isinstance(response_stream, str): # Handle error case
-             yield f"event: error\ndata: {json.dumps({'message': response_stream})}\n\n"
-             full_response = response_stream
+        if isinstance(response_stream, (str, tuple)): # Handle error case
+             error_msg = response_stream[0] if isinstance(response_stream, tuple) else response_stream
+             yield f"event: error\ndata: {json.dumps({'message': error_msg})}\n\n"
+             full_response = error_msg
         else:
             try:
                 for chunk in response_stream:

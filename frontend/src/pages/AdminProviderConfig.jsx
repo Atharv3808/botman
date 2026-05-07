@@ -83,8 +83,11 @@ export default function AdminProviderConfig() {
         getProviders(),
         getProviderLogs()
       ]);
-      setProviders(providersRes.data);
-      setLogs(logsRes.data);
+      const providersData = providersRes.data.results ? providersRes.data.results : providersRes.data;
+      setProviders(Array.isArray(providersData) ? providersData : []);
+      
+      const logsData = logsRes.data.results ? logsRes.data.results : logsRes.data;
+      setLogs(Array.isArray(logsData) ? logsData : []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {

@@ -32,7 +32,7 @@ class ConversationListSerializer(serializers.ModelSerializer):
     chatbot = ChatbotSimpleSerializer(read_only=True)
     session_id = serializers.IntegerField(source='session.id', read_only=True)
     visitor_external_id = serializers.CharField(source='visitor.external_id', read_only=True)
-    message_count = serializers.IntegerField(source='messages.count', read_only=True)
+    message_count = serializers.IntegerField(source='message_count_annotated', read_only=True)
 
     class Meta:
         model = Conversation

@@ -33,9 +33,12 @@ export default function KnowledgeView() {
   const loadFiles = useCallback(async () => {
     try {
       const response = await getKnowledgeFiles(botId);
-      setFiles(response.data);
+      const data = response.data.results ? response.data.results : response.data;
+      const filesArray = Array.isArray(data) ? data : [];
+      setFiles(filesArray);
+      
       if (previewFile) {
-        const currentFile = response.data.find(f => f.id === previewFile.id);
+        const currentFile = filesArray.find(f => f.id === previewFile.id);
         if (currentFile && currentFile.status !== previewFile.status) {
           setPreviewFile(prev => ({ ...prev, status: currentFile.status }));
         }

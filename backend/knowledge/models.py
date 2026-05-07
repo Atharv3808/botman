@@ -20,6 +20,9 @@ class KnowledgeFile(models.Model):
     processing_error = models.TextField(blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-uploaded_at']
+
     def __str__(self):
         return f"{self.file.name} ({self.status})"
 
@@ -32,6 +35,7 @@ class KnowledgeChunk(models.Model):
     search_vector = SearchVectorField(null=True)
 
     class Meta:
+        ordering = ['knowledge_file', 'chunk_index']
         indexes = [
             GinIndex(fields=['search_vector']),
         ]

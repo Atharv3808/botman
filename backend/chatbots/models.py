@@ -51,6 +51,9 @@ class Chatbot(models.Model):
 
     objects = TenantAwareManager()
 
+    class Meta:
+        ordering = ['-created_at']
+
     def get_runtime_config(self):
         """
         Returns the published configuration if available, otherwise falls back to current model fields.

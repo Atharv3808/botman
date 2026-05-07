@@ -26,6 +26,8 @@ class ConversationFilter(django_filters.FilterSet):
         model = Conversation
         fields = ['chatbot_id', 'visitor_identifier', 'session_id', 'is_preview', 'start_date', 'end_date']
 
+from django.db.models import Count
+
 class ConversationHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
@@ -35,7 +37,10 @@ class ConversationHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['visitor_identifier', 'messages__content']
 
     def get_queryset(self):
-        return Conversation.objects.all().select_related('chatbot', 'session', 'visitor').prefetch_related('messages')
+        qs = Conversation.objects.all().select_related('chatbot', 'session', 'visitor')
+        if self.action == 'list':
+            return qs.annotate(message_count_annotated=Count('messages'))
+        return qs.prefetch_related('messages')
 
     def get_serializer_class(self):
         if self.action == 'list':

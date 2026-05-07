@@ -29,7 +29,8 @@ export default function Conversations() {
     const init = async () => {
       try {
         const botsRes = await getBots();
-        setBots(botsRes.data);
+        const data = botsRes.data.results ? botsRes.data.results : botsRes.data;
+        setBots(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to fetch bots", err);
       }

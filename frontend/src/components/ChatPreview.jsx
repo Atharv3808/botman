@@ -67,7 +67,7 @@ const FormattedMessage = ({ content, role }) => {
               </code>
             );
           },
-          p: ({ children }) => <p className="mb-4 last:mb-0 leading-relaxed">{children}</p>,
+          p: ({ children }) => <div className="mb-4 last:mb-0 leading-relaxed">{children}</div>,
           ul: ({ children }) => <ul className="list-disc ml-4 mb-4 space-y-2">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal ml-4 mb-4 space-y-2">{children}</ol>,
           li: ({ children }) => <li className="pl-1">{children}</li>,

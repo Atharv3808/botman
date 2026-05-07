@@ -30,6 +30,9 @@ class Conversation(models.Model):
 
     objects = TenantAwareManager()
 
+    class Meta:
+        ordering = ['-started_at']
+
     def __str__(self):
         return f"Conversation with {self.visitor_identifier} on {self.chatbot.name}"
 

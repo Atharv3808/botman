@@ -5,6 +5,9 @@ class Plan(models.Model):
     name = models.CharField(max_length=50, unique=True)
     bot_limit = models.IntegerField(default=1)
 
+    class Meta:
+        ordering = ['id']
+
     def __str__(self):
         return self.name
 
@@ -19,6 +22,9 @@ class Subscription(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='subscription')
     plan = models.ForeignKey(Plan, on_delete=models.SET_NULL, null=True)
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['id']
 
     def __str__(self):
         return f'{self.user.username} - {self.plan.name}'

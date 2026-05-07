@@ -17,6 +17,13 @@ class AnalyticsOverviewView(APIView):
 
     def get(self, request, chatbot_id):
         include_preview = request.query_params.get('include_preview', 'false').lower() == 'true'
+        
+        # Cache key includes user id to prevent cross-user leakage
+        cache_key = f"analytics_overview_{chatbot_id}_{request.user.id}_{include_preview}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         chatbot = get_object_or_404(Chatbot, id=chatbot_id, owner=request.user)
         
         today = timezone.now().date()
@@ -67,6 +74,7 @@ class AnalyticsOverviewView(APIView):
             "knowledge_hit_rate": round(avg_knowledge_hit_rate, 2)
         }
         
+        cache.set(cache_key, data, 300) # Cache for 5 minutes
         return Response(data)
 
 class AnalyticsGraphView(APIView):
@@ -74,6 +82,12 @@ class AnalyticsGraphView(APIView):
 
     def get(self, request, chatbot_id):
         include_preview = request.query_params.get('include_preview', 'false').lower() == 'true'
+        
+        cache_key = f"analytics_graph_{chatbot_id}_{request.user.id}_{include_preview}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         chatbot = get_object_or_404(Chatbot, id=chatbot_id, owner=request.user)
         
         today = timezone.now().date()
@@ -126,6 +140,7 @@ class AnalyticsGraphView(APIView):
             "knowledge_hit_rate": round(today_hit_rate, 2)
         })
         
+        cache.set(cache_key, graph_data, 300) # Cache for 5 minutes
         return Response(graph_data)
 
 class AnalyticsLiveView(APIView):
@@ -133,6 +148,12 @@ class AnalyticsLiveView(APIView):
 
     def get(self, request, chatbot_id):
         include_preview = request.query_params.get('include_preview', 'false').lower() == 'true'
+        
+        cache_key = f"analytics_live_{chatbot_id}_{request.user.id}_{include_preview}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         chatbot = get_object_or_404(Chatbot, id=chatbot_id, owner=request.user)
         
         now = timezone.now()
@@ -156,6 +177,7 @@ class AnalyticsLiveView(APIView):
             "avg_latency_1h": round(avg_latency_1h, 2)
         }
         
+        cache.set(cache_key, data, 30) # Cache for 30 seconds
         return Response(data)
 
 class AnalyticsView(APIView):

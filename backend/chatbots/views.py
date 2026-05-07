@@ -17,7 +17,7 @@ class ChatbotViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Only return chatbots owned by the current user
-        return Chatbot.objects.filter(owner=self.request.user)
+        return Chatbot.objects.filter(owner=self.request.user).select_related('telegram_integration')
 
     def create(self, request, *args, **kwargs):
         user = request.user

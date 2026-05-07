@@ -24,7 +24,8 @@ export default function ProviderView() {
         getProviders()
       ]);
       setBot(botRes.data);
-      setProviders(providersRes.data);
+      const providersData = providersRes.data.results ? providersRes.data.results : providersRes.data;
+      setProviders(Array.isArray(providersData) ? providersData : []);
       setSelectedProviderId(botRes.data.provider_config || '');
     } catch (error) {
       console.error('Failed to fetch data:', error);
