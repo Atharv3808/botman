@@ -1,7 +1,7 @@
 
 import os
 import backoff
-from pypdf import PdfReader
+import fitz  # PyMuPDF
 from openai import OpenAI
 from google import genai
 from google.genai import errors
@@ -47,23 +47,25 @@ def decrypt_data(encrypted_data):
 
 def extract_text_from_file(file_path):
     """
-    Extracts text from a file (PDF or TXT).
+    Extracts text from a file (PDF or TXT) using high-performance PyMuPDF for PDFs.
     """
     ext = os.path.splitext(file_path)[1].lower()
-    text = ""
+    text_parts = []
     
     try:
         if ext == '.pdf':
-            reader = PdfReader(file_path)
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
+            # Use PyMuPDF (fitz) for much faster text extraction
+            with fitz.open(file_path) as doc:
+                for page in doc:
+                    extracted = page.get_text()
+                    if extracted:
+                        text_parts.append(extracted)
+            return "\n".join(text_parts)
         elif ext == '.txt':
             with open(file_path, 'r', encoding='utf-8') as f:
-                text = f.read()
+                return f.read()
         else:
             raise ValueError(f"Unsupported file format: {ext}")
-            
-        return text
     except Exception as e:
         Logger.error('EMBEDDING', f"Error extracting text from {file_path}: {e}")
         return ""
@@ -97,7 +99,7 @@ def split_text(text, chunk_size=1000, chunk_overlap=200):
 
 def embed_text(text, task_type="retrieval_query"):
     """
-    Generates embedding for a given text using Gemini (text-embedding-004).
+    Generates embedding for a given text using Gemini (gemini-embedding-001).
     Includes exponential backoff for rate limits.
     """
     api_key = os.getenv('GEMINI_API_KEY')
@@ -115,7 +117,7 @@ def embed_text(text, task_type="retrieval_query"):
     )
     def _execute_embed():
         return client.models.embed_content(
-            model="text-embedding-004",
+            model="models/gemini-embedding-001",
             contents=text,
             config={
                 'task_type': task_type,

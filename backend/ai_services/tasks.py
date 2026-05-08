@@ -16,6 +16,7 @@ def add(x, y):
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={'max_retries': 3})
 def process_knowledge_file(self, file_id):
+    start_time = time.time()
     try:
         Logger.info('KNOWLEDGE', f"Processing knowledge file {file_id}...")
         try:
@@ -40,7 +41,10 @@ def process_knowledge_file(self, file_id):
         file_path = knowledge_file.file.path
         Logger.info('KNOWLEDGE', f"Extracting text from {file_path}...")
         
+        extraction_start = time.time()
         text = extract_text_from_file(file_path)
+        extraction_end = time.time()
+        Logger.info('KNOWLEDGE', f"Extraction took {extraction_end - extraction_start:.2f}s")
         
         if not text:
             error_msg = "No text extracted or empty file."
@@ -102,47 +106,48 @@ def process_knowledge_file(self, file_id):
 
         client = genai.Client(api_key=api_key)
         
-        # 3. Iterate and update with embeddings
-        batch_size = 10
+        # 3. Iterate and update with embeddings in BATCHES
+        batch_size = 50 # Increased batch size for better performance
         total_chunks = len(chunks)
-        
-        # We need to map chunks back to their objects to update them.
-        # created_chunk_objects has the correct order.
+        embedding_start = time.time()
         
         for i in range(0, total_chunks, batch_size):
             batch_objects = created_chunk_objects[i:i + batch_size]
+            batch_contents = [obj.content for obj in batch_objects]
             
             try:
-                # Generate embeddings for each chunk in the batch
-                for obj in batch_objects:
-                    try:
-                        result = client.models.embed_content(
-                            model="text-embedding-004",
-                            contents=obj.content,
-                            config={
-                                'task_type': "retrieval_document",
-                                'output_dimensionality': 768
-                            }
-                        )
-                        obj.embedding = result.embeddings[0].values
-                    except Exception as e:
-                        Logger.error('KNOWLEDGE', f"Error generating Gemini embedding for chunk {obj.id}: {e}")
-                        # We can continue or fail. Let's continue and leave embedding as None if it fails.
-                        obj.embedding = None
+                # Generate embeddings for the entire batch in ONE API call
+                result = client.models.embed_content(
+                    model="models/gemini-embedding-001",
+                    contents=batch_contents,
+                    config={
+                        'task_type': "retrieval_document",
+                        'output_dimensionality': 768
+                    }
+                )
+                
+                # Update objects with results
+                for idx, obj in enumerate(batch_objects):
+                    obj.embedding = result.embeddings[idx].values
 
                 # Bulk update the embeddings for this batch
                 KnowledgeChunk.objects.bulk_update(batch_objects, ['embedding'])
                 
             except Exception as e:
-                Logger.error('KNOWLEDGE', f"Error updating batch {i}: {e}")
+                Logger.error('KNOWLEDGE', f"Error processing batch {i}: {e}")
+                # Optional: handle retry for specific batch if needed
                 raise e
+
+        embedding_end = time.time()
+        Logger.info('KNOWLEDGE', f"Embedding generation took {embedding_end - embedding_start:.2f}s for {total_chunks} chunks")
 
         # Update status to completed
         knowledge_file.status = 'completed'
         knowledge_file.save()
         
-        Logger.info('KNOWLEDGE', f"Successfully processed {total_chunks} chunks for file {file_id}")
-        return f"Processed {total_chunks} chunks"
+        total_time = time.time() - start_time
+        Logger.info('KNOWLEDGE', f"Successfully processed {total_chunks} chunks for file {file_id} in {total_time:.2f}s")
+        return f"Processed {total_chunks} chunks in {total_time:.2f}s"
         
     except Exception as e:
         Logger.error('KNOWLEDGE', f"Error processing file: {e}")
