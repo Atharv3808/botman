@@ -4,7 +4,7 @@ import time
 import os
 from knowledge.models import KnowledgeFile, KnowledgeChunk
 from .utils import extract_text_from_file, split_text
-import google.generativeai as genai
+from google import genai
 from monitoring.utils import Logger
 from django.contrib.postgres.search import SearchVector
 from django.db import transaction
@@ -100,7 +100,7 @@ def process_knowledge_file(self, file_id):
              knowledge_file.save()
              return "Processed chunks (No Embeddings)"
 
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
         
         # 3. Iterate and update with embeddings
         batch_size = 10
@@ -116,13 +116,15 @@ def process_knowledge_file(self, file_id):
                 # Generate embeddings for each chunk in the batch
                 for obj in batch_objects:
                     try:
-                        result = genai.embed_content(
-                            model="models/gemini-embedding-001",
-                            content=obj.content,
-                            task_type="retrieval_document",
-                            output_dimensionality=768
+                        result = client.models.embed_content(
+                            model="text-embedding-004",
+                            contents=obj.content,
+                            config={
+                                'task_type': "retrieval_document",
+                                'output_dimensionality': 768
+                            }
                         )
-                        obj.embedding = result['embedding']
+                        obj.embedding = result.embeddings[0].values
                     except Exception as e:
                         Logger.error('KNOWLEDGE', f"Error generating Gemini embedding for chunk {obj.id}: {e}")
                         # We can continue or fail. Let's continue and leave embedding as None if it fails.

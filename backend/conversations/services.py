@@ -187,16 +187,18 @@ def stream_response_generator(chatbot, prompt, conversation, start_time=None, so
                     full_response += chunk_text
                     yield f"data: {json.dumps({'content': chunk_text})}\n\n"
                 
-                # Gemini usage metadata is in the last response object, but iterating consumes it.
-                # Actually, in google-generativeai, usage_metadata is available on the response object after iteration
-                # if we have access to it. But here response_stream is the GenerateContentResponse (iterable).
-                # Let's try to access usage_metadata from response_stream after iteration.
-                if hasattr(response_stream, 'usage_metadata'):
-                     usage = {
-                        'prompt_tokens': response_stream.usage_metadata.prompt_token_count,
-                        'completion_tokens': response_stream.usage_metadata.candidates_token_count,
-                        'total_tokens': response_stream.usage_metadata.total_token_count
-                    }
+                # In google-genai, usage_metadata is on the stream response object
+                # after iteration is complete.
+                try:
+                    metadata = response_stream.usage_metadata
+                    if metadata:
+                        usage = {
+                            'prompt_tokens': metadata.prompt_token_count,
+                            'completion_tokens': metadata.candidates_token_count,
+                            'total_tokens': metadata.total_token_count
+                        }
+                except (AttributeError, Exception):
+                    pass
             except Exception as e:
                 error_msg = f"Error streaming from Gemini: {e}"
                 yield f"event: error\ndata: {json.dumps({'message': error_msg})}\n\n"

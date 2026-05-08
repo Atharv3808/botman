@@ -1,10 +1,10 @@
 
 import os
-import warnings
-warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
+import backoff
 from pypdf import PdfReader
 from openai import OpenAI
-import google.generativeai as genai
+from google import genai
+from google.genai import errors
 from pgvector.django import CosineDistance
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.db import connection
@@ -97,22 +97,35 @@ def split_text(text, chunk_size=1000, chunk_overlap=200):
 
 def embed_text(text, task_type="retrieval_query"):
     """
-    Generates embedding for a given text using Gemini (gemini-embedding-001).
+    Generates embedding for a given text using Gemini (text-embedding-004).
+    Includes exponential backoff for rate limits.
     """
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key:
         Logger.warning('EMBEDDING', "Gemini API key is missing.")
         return None
         
-    try:
-        genai.configure(api_key=api_key)
-        result = genai.embed_content(
-            model="models/gemini-embedding-001",
-            content=text,
-            task_type=task_type,
-            output_dimensionality=768
+    client = genai.Client(api_key=api_key)
+
+    @backoff.on_exception(
+        backoff.expo,
+        (errors.ClientError),
+        max_tries=5, # Higher tries for embeddings as they are often batch processed
+        giveup=lambda e: getattr(e, 'code', None) != 429
+    )
+    def _execute_embed():
+        return client.models.embed_content(
+            model="text-embedding-004",
+            contents=text,
+            config={
+                'task_type': task_type,
+                'output_dimensionality': 768
+            }
         )
-        return result['embedding']
+
+    try:
+        result = _execute_embed()
+        return result.embeddings[0].values
     except Exception as e:
         Logger.error('EMBEDDING', f"Error generating Gemini embedding: {e}")
         return None
