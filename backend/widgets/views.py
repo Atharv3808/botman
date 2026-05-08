@@ -73,9 +73,22 @@ class WidgetConfigView(APIView):
     permission_classes = [permissions.AllowAny]
     throttle_scope = 'public_widget'
 
-    def get(self, request, widget_token):
-        chatbot = get_object_or_404(Chatbot, widget_token=widget_token)
+    def get(self, request, token):
+        # Try lookup by widget_token (UUID) first, then by ID
+        chatbot = None
         
+        # Try UUID
+        try:
+            val = uuid.UUID(token, version=4)
+            chatbot = Chatbot.objects.filter(widget_token=token).first()
+        except ValueError:
+            # Not a UUID, try ID
+            if token.isdigit():
+                chatbot = Chatbot.objects.filter(id=int(token)).first()
+        
+        if not chatbot:
+            return Response({"error": "Bot not found"}, status=status.HTTP_404_NOT_FOUND)
+            
         is_valid, error_msg = validate_bot_status(chatbot)
         if not is_valid:
             return Response({"error": error_msg}, status=status.HTTP_403_FORBIDDEN)

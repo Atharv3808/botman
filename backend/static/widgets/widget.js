@@ -1,8 +1,38 @@
 (function() {
   "use strict";
 
+  if (window.__botman_script_loaded) return;
+  window.__botman_script_loaded = true;
+
+  const getScriptConfig = () => {
+    const scriptTag = document.currentScript || document.querySelector('script[data-bot-id]');
+    if (!scriptTag) {
+      console.error("Botman: Script tag not found. Make sure you use data-bot-id attribute.");
+      return null;
+    }
+    
+    const src = scriptTag.src;
+    let apiBase;
+    
+    if (src.startsWith('http')) {
+      const url = new URL(src);
+      apiBase = `${url.origin}/widget`;
+    } else {
+      // Fallback for relative paths - assume it's hosted on the same origin as the API
+      apiBase = `${window.location.origin}/widget`;
+    }
+    
+    return {
+      botId: scriptTag.getAttribute('data-bot-id') || scriptTag.getAttribute('data-bot-token'),
+      apiBase: apiBase
+    };
+  };
+
+  const scriptConfig = getScriptConfig();
+  if (!scriptConfig) return;
+
   const CONFIG = {
-    API_BASE: "http://localhost:8000/widget", // In prod, this would be your API domain
+    API_BASE: scriptConfig.apiBase,
     CDN_BASE: "https://cdn.botman.ai",
     SESSION_KEY: "botman_session",
     RECONNECT_DELAY: 1000,
@@ -11,7 +41,10 @@
 
   class BotmanWidget {
     constructor() {
-      this.botId = null;
+      if (window.__botman_initialized) return;
+      window.__botman_initialized = true;
+
+      this.botId = scriptConfig.botId;
       this.config = null;
       this.sessionToken = null;
       this.visitorId = null;
@@ -26,21 +59,45 @@
     }
 
     async init() {
-      // 1. Read bot-id from script tag
-      const scriptTag = document.currentScript || document.querySelector('script[data-bot-id]');
-      if (!scriptTag) {
-        console.error("Botman: Script tag with data-bot-id not found.");
-        return;
+      console.log("Botman: Initializing for bot:", this.botId);
+
+      // Load dependencies (Marked and Highlight.js)
+      await this.loadDependencies();
+      
+      // Try to load config from sessionStorage first to avoid unnecessary network requests
+      const cachedConfigKey = `botman_config_${this.botId}`;
+      const cachedConfig = sessionStorage.getItem(cachedConfigKey);
+      
+      if (cachedConfig) {
+        try {
+          this.config = JSON.parse(cachedConfig);
+          console.log("Botman: Using cached config", this.config);
+          this.setupUI();
+          return;
+        } catch (e) {
+          sessionStorage.removeItem(cachedConfigKey);
+        }
       }
-      this.botId = scriptTag.getAttribute('data-bot-id');
 
       // 2. Fetch Configuration
       try {
-        const response = await fetch(`${CONFIG.API_BASE}/config/${this.botId}/`);
-        if (!response.ok) throw new Error("Botman: Failed to fetch configuration.");
+        const configUrl = `${CONFIG.API_BASE}/config/${this.botId}/`;
+        console.log("Botman: Fetching config from:", configUrl);
+        const response = await fetch(configUrl).catch(e => {
+          throw new Error(`Botman: Network error or CORS block when fetching from ${configUrl}. Make sure the backend is running at ${CONFIG.API_BASE}`);
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`Botman: Failed to fetch configuration. ${errorData.error || response.statusText}`);
+        }
         this.config = await response.json();
+        console.log("Botman: Config loaded successfully", this.config);
+        
+        // Cache config in sessionStorage
+        sessionStorage.setItem(cachedConfigKey, JSON.stringify(this.config));
       } catch (err) {
-        console.error(err);
+        console.error("Botman: Error during init:", err);
         return;
       }
 
@@ -48,7 +105,61 @@
       this.setupUI();
     }
 
+    async loadDependencies() {
+      const dependencies = [
+        { id: 'marked-js', url: 'https://cdn.jsdelivr.net/npm/marked/marked.min.js' },
+        { id: 'highlight-js', url: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js' },
+        { id: 'highlight-css', url: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css', type: 'style' }
+      ];
+
+      const loaders = dependencies.map(dep => {
+        return new Promise((resolve, reject) => {
+          if (document.getElementById(dep.id)) return resolve();
+          
+          if (dep.type === 'style') {
+            const link = document.createElement('link');
+            link.id = dep.id;
+            link.rel = 'stylesheet';
+            link.href = dep.url;
+            link.onload = resolve;
+            link.onerror = reject;
+            document.head.appendChild(link);
+          } else {
+            const script = document.createElement('script');
+            script.id = dep.id;
+            script.src = dep.url;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          }
+        });
+      });
+
+      try {
+        await Promise.all(loaders);
+        // Configure marked to use highlight.js
+        if (window.marked && window.hljs) {
+          window.marked.setOptions({
+            highlight: function(code, lang) {
+              const language = window.hljs.getLanguage(lang) ? lang : 'plaintext';
+              return window.hljs.highlight(code, { language }).value;
+            },
+            langPrefix: 'hljs language-',
+            breaks: true,
+            gfm: true
+          });
+        }
+      } catch (err) {
+        console.error("Botman: Failed to load dependencies", err);
+      }
+    }
+
     setupUI() {
+      if (!document.body) {
+        console.warn("Botman: document.body not ready. Retrying setupUI in 50ms...");
+        setTimeout(() => this.setupUI(), 50);
+        return;
+      }
       this.container = document.createElement('div');
       this.container.id = 'botman-widget-container';
       document.body.appendChild(this.container);
@@ -129,15 +240,29 @@
           background: #f9fafb;
         }
         .message {
-          max-width: 80%;
-          padding: 10px 14px;
+          max-width: 85%;
+          padding: 12px 16px;
           border-radius: 12px;
           font-size: 14px;
-          line-height: 1.4;
+          line-height: 1.6;
           word-wrap: break-word;
         }
         .message.bot { background: white; border: 1px solid #e5e7eb; align-self: flex-start; border-bottom-left-radius: 2px; }
         .message.user { background: ${primaryColor}; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+
+        /* Markdown Styles */
+        .message.bot p { margin: 0 0 12px 0; }
+        .message.bot p:last-child { margin-bottom: 0; }
+        .message.bot ul, .message.bot ol { margin: 0 0 12px 20px; padding: 0; }
+        .message.bot li { margin-bottom: 4px; }
+        .message.bot h1, .message.bot h2, .message.bot h3 { margin: 16px 0 8px 0; font-size: 1.1em; }
+        .message.bot pre { background: #1f2937; color: white; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 12px 0; }
+        .message.bot code { font-family: monospace; background: #f3f4f6; padding: 2px 4px; border-radius: 4px; font-size: 0.9em; }
+        .message.bot pre code { background: transparent; padding: 0; }
+        .message.bot table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9em; }
+        .message.bot th, .message.bot td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+        .message.bot th { background: #f9fafb; }
+        .message.bot blockquote { border-left: 4px solid #e5e7eb; margin: 12px 0; padding-left: 16px; color: #6b7280; font-style: italic; }
 
         .botman-input-area {
           padding: 16px;
@@ -242,7 +367,7 @@
           const res = await fetch(`${CONFIG.API_BASE}/session/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bot_id: this.botId })
+            body: JSON.stringify({ bot_token: this.botId })
           });
           const data = await res.json();
           this.sessionToken = data.session_token;
@@ -273,7 +398,12 @@
       
       const msg = document.createElement('div');
       msg.className = `message ${role}`;
-      msg.textContent = text;
+      
+      if (role === 'bot' && window.marked) {
+        msg.innerHTML = window.marked.parse(text);
+      } else {
+        msg.textContent = text;
+      }
       
       container.insertBefore(msg, typing);
       container.scrollTop = container.scrollHeight;
@@ -310,30 +440,46 @@
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let botMessageElement = null;
+      let fullText = "";
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
         
-        const chunk = decoder.decode(value);
+        const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split('\n');
         
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') break;
+          if (line.trim().startsWith('data: ')) {
+            const dataStr = line.trim().slice(6);
+            if (dataStr === '[DONE]') break;
             
-            if (!botMessageElement) {
-              botMessageElement = document.createElement('div');
-              botMessageElement.className = 'message bot';
-              const container = this.shadow.getElementById('botman-messages');
-              const typing = this.shadow.getElementById('botman-typing');
-              container.insertBefore(botMessageElement, typing);
+            try {
+              const data = JSON.parse(dataStr);
+              const content = data.content || data.chunk || "";
+              
+              if (content) {
+                if (!botMessageElement) {
+                  botMessageElement = document.createElement('div');
+                  botMessageElement.className = 'message bot';
+                  const container = this.shadow.getElementById('botman-messages');
+                  const typing = this.shadow.getElementById('botman-typing');
+                  container.insertBefore(botMessageElement, typing);
+                }
+                
+                fullText += content;
+                if (window.marked) {
+                  botMessageElement.innerHTML = window.marked.parse(fullText);
+                } else {
+                  botMessageElement.textContent = fullText;
+                }
+                
+                const container = this.shadow.getElementById('botman-messages');
+                container.scrollTop = container.scrollHeight;
+              }
+            } catch (e) {
+              console.warn("Botman: Failed to parse chunk", e, dataStr);
             }
-            
-            botMessageElement.textContent += data;
-            const container = this.shadow.getElementById('botman-messages');
-            container.scrollTop = container.scrollHeight;
           }
         }
       }

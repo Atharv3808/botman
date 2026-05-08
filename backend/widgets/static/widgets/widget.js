@@ -12,8 +12,15 @@
     }
     
     const src = scriptTag.src;
-    const url = new URL(src);
-    const apiBase = `${url.origin}/widget`;
+    let apiBase;
+    
+    if (src.startsWith('http')) {
+      const url = new URL(src);
+      apiBase = `${url.origin}/widget`;
+    } else {
+      // Fallback for relative paths - assume it's hosted on the same origin as the API
+      apiBase = `${window.location.origin}/widget`;
+    }
     
     return {
       botId: scriptTag.getAttribute('data-bot-id') || scriptTag.getAttribute('data-bot-token'),
@@ -76,7 +83,10 @@
       try {
         const configUrl = `${CONFIG.API_BASE}/config/${this.botId}/`;
         console.log("Botman: Fetching config from:", configUrl);
-        const response = await fetch(configUrl);
+        const response = await fetch(configUrl).catch(e => {
+          throw new Error(`Botman: Network error or CORS block when fetching from ${configUrl}. Make sure the backend is running at ${CONFIG.API_BASE}`);
+        });
+        
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(`Botman: Failed to fetch configuration. ${errorData.error || response.statusText}`);
