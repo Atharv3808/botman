@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./venv/bin/python manage.py check)",
+      "Bash(curl -s \"https://generativelanguage.googleapis.com/v1beta/models?key=AIzaSyDAmWXA9vl2QcYsAXyjzRwNOsnGGmp1z0M&pageSize=200\")",
+      "Bash(python3 -c ' *)",
+      "Bash(DJANGO_SETTINGS_MODULE=botman_backend.settings.dev ./venv/bin/python -c ' *)",
+      "Bash(./venv/bin/python -c ' *)",
+      "Bash(DJANGO_SETTINGS_MODULE=botman_backend.settings.dev ./venv/bin/python manage.py test ai_services conversations)",
+      "Bash(git checkout *)",
+      "Bash(git stash *)",
+      "Bash(DJANGO_SETTINGS_MODULE=botman_backend.settings.dev ./venv/bin/python manage.py test conversations.tests.test_agent_routing.AgentRoutingTest.test_high_confidence_rag_routing)",
+      "Bash(GEMINI_API_KEY=placeholder_dead_key DJANGO_SETTINGS_MODULE=botman_backend.settings.dev ./venv/bin/python manage.py test ai_services conversations)"
+    ]
+  }
+}

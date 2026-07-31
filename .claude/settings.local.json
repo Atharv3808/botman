@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"from google.genai import errors; print\\([x for x in dir\\(errors\\) if 'Error' in x or 'error' in x]\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(DJANGO_SETTINGS_MODULE=core.settings python3 -c ' *)",
+      "Bash(DJANGO_SETTINGS_MODULE=botman_backend.settings python3 -c ' *)",
+      "Bash(DJANGO_SETTINGS_MODULE=botman_backend.settings python3 test_gemini_key.py)"
+    ]
+  }
+}

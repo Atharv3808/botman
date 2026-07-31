@@ -54,14 +54,14 @@ def call_gemini(prompt, stream=False):
 
     try:
         client = genai.Client(api_key=api_key)
-        # Use models/gemini-flash-latest as seen in the model list
-        model_id = 'models/gemini-flash-latest'
+        # Use models/gemini-2.5-flash as seen in the model list
+        model_id = 'models/gemini-2.5-flash'
         
         @backoff.on_exception(
             backoff.expo,
-            (errors.ClientError),
+            (errors.ClientError, errors.ServerError),
             max_tries=3,
-            giveup=lambda e: getattr(e, 'code', None) != 429
+            giveup=lambda e: getattr(e, 'code', None) not in (429, 503)
         )
         def _execute_call(m_id):
             if stream:
@@ -90,12 +90,14 @@ def call_gemini(prompt, stream=False):
                 }
             return response_text, usage
 
-    except errors.ClientError as e:
-        if getattr(e, 'code', None) == 429:
-            # If gemini-flash-latest is exhausted, try 2.0-flash as a fallback
+    except (errors.ClientError, errors.ServerError) as e:
+        code = getattr(e, 'code', None)
+        if code in (429, 503):
+            # If 2.5-flash is exhausted or unavailable, try flash-lite as a fallback
             try:
-                Logger.warning('AI', "Gemini flash-latest quota exhausted, trying 2.0-flash fallback")
-                model_id = 'models/gemini-2.0-flash'
+                reason = "quota exhausted" if code == 429 else "unavailable (high demand)"
+                Logger.warning('AI', f"Gemini 2.5-flash {reason}, trying flash-lite fallback")
+                model_id = 'models/gemini-flash-lite-latest'
                 response = _execute_call(model_id)
                 if stream: return response
                 usage = {}
@@ -108,8 +110,9 @@ def call_gemini(prompt, stream=False):
                 return response.text, usage
             except Exception as fallback_err:
                 Logger.error('AI', f"Gemini Fallback Failed: {fallback_err}")
-                return "The AI service is currently overloaded (Rate Limit Exceeded). Please try again in a moment.", {}
-        
+                Logger.warning('AI', "All Gemini models exhausted, falling back to OpenAI")
+                return call_openai(prompt, stream=stream)
+
         Logger.error('AI', f"Gemini Call Failed: {e}", {'stream': stream})
         return f"Error calling Gemini: {e}", {}
     except Exception as e:
